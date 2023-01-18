@@ -25,7 +25,8 @@ def create_new_database(path : str)  ->bool :
                 TopImage BLOB NOT NULL,
                 PerspImage BLOB NOT NULL,
                 SideImage BLOB NOT NULL,
-                FrontImage BLOB NOT NULL
+                FrontImage BLOB NOT NULL,
+                FileType TEXT CHECK( FileType IN ('obj','usd','fbx') )   NOT NULL DEFAULT 'obj'
                 );
             """
             

@@ -36,16 +36,36 @@ class ClutterBaseConnection :
 
     def add_item(self,name : str, description : str , mesh : str, top_image : str,side_image : str, front_image : str, persp_image : str) :
         
+        meshType="obj"
+        if name.endswith(".usd") :
+            meshType="usd"
+        elif name.endswith(".fbx") :
+            meshType="fbx"
+
+
         cursor=  self.connection.cursor()
         query = """ INSERT INTO ClutterBase
-                                  ( Name, Description, MeshData,TopImage,PerspImage,SideImage,FrontImage) VALUES (?, ?, ?, ?,?,?,?)"""
+                                  ( Name, Description, MeshData,TopImage,PerspImage,SideImage,FrontImage,FileType) VALUES (?,?,?,?,?,?,?,?)"""
         mesh_blob=self._loadBlob(mesh)
         top_image_blob=self._loadBlob(top_image)
         persp_image_blob=self._loadBlob(persp_image)
         side_image_blob=self._loadBlob(side_image)
         front_image_blob=self._loadBlob(front_image)
         
-        query_data = (name,description,mesh_blob,top_image_blob,persp_image_blob,side_image_blob,front_image_blob)
+        query_data = (name,description,mesh_blob,top_image_blob,persp_image_blob,side_image_blob,front_image_blob,meshType)
         cursor.execute(query, query_data)
         self.connection.commit()
+        cursor.close()
+
+    def extract_mesh(self,name : str, out_name : str) :
+        cursor=  self.connection.cursor()
+        query="""SELECT MeshData,FileType FROM ClutterBase WHERE Name = ?;"""
+        cursor.execute(query, [name])
+        record = cursor.fetchone()
+        if record !=None :
+            if not out_name.endswith(record[1]) :
+                out_name=f"{out_name}.{record[1]}"
+            with open(out_name, 'wb') as file:
+                file.write(record[0])
+                
         cursor.close()
