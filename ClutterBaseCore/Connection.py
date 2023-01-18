@@ -35,11 +35,10 @@ class ClutterBaseConnection :
         return blobData
 
     def add_item(self,name : str, description : str , mesh : str, top_image : str,side_image : str, front_image : str, persp_image : str) :
-        
         meshType="obj"
-        if name.endswith(".usd") :
+        if mesh.endswith(".usd") :
             meshType="usd"
-        elif name.endswith(".fbx") :
+        elif mesh.endswith(".fbx") :
             meshType="fbx"
 
 
