@@ -7,6 +7,7 @@ import maya.api.OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.OpenMayaUI as omui
 from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Qt
 from PySide2.QtSql import (QSqlDatabase, QSqlQuery, QSqlQueryModel,
                            QSqlTableModel)
 from shiboken2 import wrapInstance
@@ -16,6 +17,27 @@ def get_main_window():
     """this returns the maya main window for parenting"""
     window = omui.MQtUtil.mainWindow()
     return wrapInstance(int(window), QtWidgets.QDialog)
+
+class ImageDataModel(QSqlQueryModel):
+    def __init__(self, parent=None):
+        #super(QSqlQueryModel, self).__init__(parent)
+        super().__init__(parent)
+    def data(self, index, role=0):
+        value = QSqlQueryModel.data(self, index, role)
+        # process images these are in columns 3,4,5,6 from our data
+        if index.column() in [3, 4, 5, 6]:
+            if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
+                return None
+            if role == Qt.ItemDataRole.DecorationRole:
+                variant = QSqlQueryModel.data(self, index, Qt.ItemDataRole.DisplayRole)
+                # img = variant.toByteArray()
+                pixmap = QtGui.QPixmap()
+                pixmap.loadFromData(variant, "png")
+                return pixmap
+
+        else:
+            return value
+
 
 
 class ClutterBaseDialog(QtWidgets.QDialog):
@@ -43,10 +65,9 @@ class ClutterBaseDialog(QtWidgets.QDialog):
         self.gridLayout.addWidget(self.load_db,1, 3, 1, 1)
 
     def load_mesh(self,index) :
-        row= index.row()
-        item = self.database_view.model().index(row, 0)
-        mesh_id=self.database_view.model().data(item)
-        print(f"{mesh_id=}")
+        model = self.database_view.model()
+        mesh_id=model.data(model.index(index.row(), 0))
+
         query="""SELECT MeshData,FileType FROM ClutterBase WHERE Id = ?;"""
         query = QSqlQuery()
         result = query.exec_(f"SELECT MeshData,FileType FROM ClutterBase WHERE Id = {mesh_id}; ")
@@ -84,13 +105,14 @@ class ClutterBaseDialog(QtWidgets.QDialog):
             if not "ClutterBase" in self.database.tables() : 
                 QtWidgets.QMessageBox.critical(
                 self,'CRITICAL ERROR','Not a valid ClutterBase File',QtWidgets.QMessageBox.StandardButton.Abort)
-            query = QSqlQuery()
-            result = query.exec_("""select * from "ClutterBase" """)
-            if result :
-                model =QSqlTableModel(db=self.database)
-                model.setQuery(query)
-                self.database_view.setModel(model)
-
+            
+            else :            
+                query = ImageDataModel() 
+                queryColumns = "id,Name ,Description ,TopImage ,PerspImage ,SideImage ,FrontImage ,FileType"
+                query.setQuery(f"select {queryColumns} from ClutterBase")
+                self.database_view.setModel(query)
+                self.database_view.resizeRowsToContents()
+                self.database_view.resizeColumnsToContents()
 
 
 if __name__ == "__main__":
