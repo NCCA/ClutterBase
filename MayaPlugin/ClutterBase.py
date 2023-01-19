@@ -68,7 +68,6 @@ class ClutterBaseDialog(QtWidgets.QDialog):
         model = self.database_view.model()
         mesh_id=model.data(model.index(index.row(), 0))
 
-        query="""SELECT MeshData,FileType FROM ClutterBase WHERE Id = ?;"""
         query = QSqlQuery()
         result = query.exec_(f"SELECT MeshData,FileType FROM ClutterBase WHERE Id = {mesh_id}; ")
         if result :
