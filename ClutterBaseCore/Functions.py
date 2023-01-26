@@ -13,10 +13,12 @@ from sqlite3 import Error
             bool
                 True if database file can be created.
 """
-def create_new_database(path : str)  ->bool :
-    try :
-        with sqlite3.connect(path) as connection :
-            create_table_sql="""
+
+
+def create_new_database(path: str) -> bool:
+    try:
+        with sqlite3.connect(path) as connection:
+            create_table_sql = """
             CREATE TABLE IF NOT EXISTS ClutterBase (
                 id integer PRIMARY KEY AUTOINCREMENT,
                 Name text NOT NULL,
@@ -29,8 +31,8 @@ def create_new_database(path : str)  ->bool :
                 FileType TEXT CHECK( FileType IN ('obj','usd','fbx') )   NOT NULL DEFAULT 'obj'
                 );
             """
-            
-            cursor=connection.cursor()
+
+            cursor = connection.cursor()
             cursor.execute(create_table_sql)
             return True
     except Error as e:
