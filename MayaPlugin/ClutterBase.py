@@ -8,8 +8,7 @@ import maya.cmds as cmds
 import maya.OpenMayaUI as omui
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Qt
-from PySide2.QtSql import (QSqlDatabase, QSqlQuery, QSqlQueryModel,
-                           QSqlTableModel)
+from PySide2.QtSql import QSqlDatabase, QSqlQuery, QSqlQueryModel, QSqlTableModel
 from shiboken2 import wrapInstance
 
 
@@ -18,10 +17,12 @@ def get_main_window():
     window = omui.MQtUtil.mainWindow()
     return wrapInstance(int(window), QtWidgets.QDialog)
 
+
 class ImageDataModel(QSqlQueryModel):
     def __init__(self, parent=None):
-        #super(QSqlQueryModel, self).__init__(parent)
+        # super(QSqlQueryModel, self).__init__(parent)
         super().__init__(parent)
+
     def data(self, index, role=0):
         value = QSqlQueryModel.data(self, index, role)
         # process images these are in columns 3,4,5,6 from our data
@@ -39,7 +40,6 @@ class ImageDataModel(QSqlQueryModel):
             return value
 
 
-
 class ClutterBaseDialog(QtWidgets.QDialog):
     def __init__(self, parent=get_main_window()):
         """init the class and setup dialog"""
@@ -53,61 +53,72 @@ class ClutterBaseDialog(QtWidgets.QDialog):
         # Set the GUI components and layout
         self.setWindowTitle("ClutterBase")
         self.resize(800, 200)
-        self.database=None
+        self.database = None
         # Create GridLayout
         self.gridLayout = QtWidgets.QGridLayout(self)
         self.database_view = QtWidgets.QTableView(self)
-        self.gridLayout.addWidget(self.database_view,0, 0, 1, 4)
+        self.gridLayout.addWidget(self.database_view, 0, 0, 1, 4)
         self.database_view.doubleClicked.connect(self.load_mesh)
-        
-        self.load_db = QtWidgets.QPushButton("Load Database",self)
-        self.load_db.clicked.connect(self.load_database)        
-        self.gridLayout.addWidget(self.load_db,1, 3, 1, 1)
 
-    def load_mesh(self,index) :
+        self.load_db = QtWidgets.QPushButton("Load Database", self)
+        self.load_db.clicked.connect(self.load_database)
+        self.gridLayout.addWidget(self.load_db, 1, 3, 1, 1)
+
+    def load_mesh(self, index):
         model = self.database_view.model()
-        mesh_id=model.data(model.index(index.row(), 0))
+        mesh_id = model.data(model.index(index.row(), 0))
 
-        query="""SELECT MeshData,FileType FROM ClutterBase WHERE Id = ?;"""
+        query = """SELECT MeshData,FileType FROM ClutterBase WHERE Id = ?;"""
         query = QSqlQuery()
-        result = query.exec_(f"SELECT MeshData,FileType FROM ClutterBase WHERE Id = {mesh_id}; ")
-        if result :
+        result = query.exec_(
+            f"SELECT MeshData,FileType FROM ClutterBase WHERE Id = {mesh_id}; "
+        )
+        if result:
             query.next()
-            mesh_data=query.value(0)
-            mesh_type=query.value(1)
+            mesh_data = query.value(0)
+            mesh_type = query.value(1)
             print(f"query worked {mesh_type=}")
-            with tempfile.TemporaryDirectory() as tempdir :
-                out_name=f"{tempdir}/mesh.{mesh_type}"
-                with open(out_name, 'wb') as file:
+            with tempfile.TemporaryDirectory() as tempdir:
+                out_name = f"{tempdir}/mesh.{mesh_type}"
+                with open(out_name, "wb") as file:
                     file.write(mesh_data)
-                import_type="OBJ"
-                if mesh_type == "usd" :
-                    import_type="USD Import" 
-                elif mesh_type=="fbx" :
-                    import_type="FBX"
+                import_type = "OBJ"
+                if mesh_type == "usd":
+                    import_type = "USD Import"
+                elif mesh_type == "fbx":
+                    import_type = "FBX"
 
-                cmds.file(out_name,gr=True,i=True,groupName="ClutterBaseImport",type=import_type )
-                
-            
-        else :
+                cmds.file(
+                    out_name,
+                    gr=True,
+                    i=True,
+                    groupName="ClutterBaseImport",
+                    type=import_type,
+                )
+
+        else:
             print("query error")
- 
+
     def load_database(self):
         """This does all the work"""
         # Get the folder to save to
         name = cmds.fileDialog2(fm=1)
-        if name !=None :
+        if name != None:
             self.database = QSqlDatabase.addDatabase("QSQLITE")
             print(name[0])
             self.database.setDatabaseName(str(name[0]))
-            self.connected=self.database.open()
+            self.connected = self.database.open()
 
-            if not "ClutterBase" in self.database.tables() : 
+            if not "ClutterBase" in self.database.tables():
                 QtWidgets.QMessageBox.critical(
-                self,'CRITICAL ERROR','Not a valid ClutterBase File',QtWidgets.QMessageBox.StandardButton.Abort)
-            
-            else :            
-                query = ImageDataModel() 
+                    self,
+                    "CRITICAL ERROR",
+                    "Not a valid ClutterBase File",
+                    QtWidgets.QMessageBox.StandardButton.Abort,
+                )
+
+            else:
+                query = ImageDataModel()
                 queryColumns = "id,Name ,Description ,TopImage ,PerspImage ,SideImage ,FrontImage ,FileType"
                 query.setQuery(f"select {queryColumns} from ClutterBase")
                 self.database_view.setModel(query)
